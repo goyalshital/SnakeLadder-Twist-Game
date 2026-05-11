@@ -22,7 +22,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
@@ -80,8 +79,8 @@ fun HomeScreen(onStart: (String, Int) -> Unit) {
         verticalArrangement = Arrangement.Center
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text("SNAKE & LADDER", fontSize = 32.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF1B5E20), letterSpacing = 2.sp)
-            Text("WITH A TWIST", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color(0xFFB71C1C), letterSpacing = 5.sp)
+            Text("SNAKE & LADDER", fontSize = 32.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF1B5E20), letterSpacing = 2.sp, textAlign = TextAlign.Center)
+            Text("WITH A TWIST", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color(0xFFB71C1C), letterSpacing = 5.sp, textAlign = TextAlign.Center)
         }
         Spacer(modifier = Modifier.height(60.dp))
         Text("Select Players", fontSize = 14.sp, color = Color.Gray, fontWeight = FontWeight.Bold)
@@ -94,7 +93,7 @@ fun HomeScreen(onStart: (String, Int) -> Unit) {
                     colors = ButtonDefaults.buttonColors(containerColor = if (tempCount == count) Color(0xFF1976D2) else Color.White, contentColor = if (tempCount == count) Color.White else Color.Black),
                     elevation = ButtonDefaults.buttonElevation(4.dp),
                     border = if (tempCount != count) BorderStroke(1.dp, Color.LightGray) else null
-                ) { Text("$count Players", fontSize = 11.sp) }
+                ) { Text("$count Players", fontSize = 11.sp) } // FIXED SPELLING
             }
         }
         Spacer(modifier = Modifier.height(30.dp))
@@ -141,6 +140,36 @@ fun GameScreen(mode: String, playerCount: Int, onBack: () -> Unit) {
     var feedbackColor by remember { mutableStateOf(Color.Black) }
     val playerColors = listOf(Color(0xFF1976D2), Color(0xFFD32F2F), Color(0xFF388E3C), Color(0xFFF57C00))
 
+    // --- TIMER LOGIC FIXED ---
+    LaunchedEffect(showChallenge, isPaused) {
+        if (showChallenge && !isPaused) {
+            while (timeLeft > 0 && showChallenge && !isPaused) {
+                delay(1000L)
+                timeLeft--
+            }
+            if (timeLeft == 0 && showChallenge) {
+                showChallenge = false
+                playSound(context, R.raw.wrong)
+                feedbackMessage = "⏰ Time Up! Penalty applied"
+                feedbackColor = Color.Red
+
+                val sIndex = currentPlayerIndex
+                val startPos = playerPositions[sIndex]
+                val penaltyPos = (startPos - 2).coerceAtLeast(1)
+                animatedPositions[sIndex].animateTo(penaltyPos.toFloat(), tween(500))
+
+                val newList = playerPositions.toMutableList()
+                newList[sIndex] = penaltyPos
+                playerPositions = newList
+
+                delay(1500)
+                feedbackMessage = null
+                userAnswer = ""
+                currentPlayerIndex = (sIndex + 1) % playerCount
+            }
+        }
+    }
+
     LaunchedEffect(isRolling) {
         if (isRolling && !isPaused) {
             playSound(context, R.raw.dice_roll)
@@ -164,14 +193,14 @@ fun GameScreen(mode: String, playerCount: Int, onBack: () -> Unit) {
     Box(modifier = Modifier.fillMaxSize().background(Color.White)) {
         Column(
             modifier = Modifier.fillMaxSize().statusBarsPadding().padding(horizontal = 16.dp)
-                .verticalScroll(rememberScrollState()) // SIRF YE LINE ADD KI HAI SAFE REHNE KE LIYE
+                .verticalScroll(rememberScrollState())
                 .blur(if (showChallenge || isPaused) 15.dp else 0.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(text = "SNAKE & LADDER", fontSize = 24.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF1B5E20))
-                Text(text = "with a TWIST", fontSize = 16.sp, color = Color(0xFFB71C1C), modifier = Modifier.offset(y = (-4).dp))
+                Text(text = "SNAKE & LADDER", fontSize = 24.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF1B5E20), textAlign = TextAlign.Center)
+                Text(text = "with a TWIST", fontSize = 16.sp, color = Color(0xFFB71C1C), modifier = Modifier.offset(y = (-4).dp), textAlign = TextAlign.Center)
             }
             Spacer(modifier = Modifier.height(10.dp))
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
@@ -208,7 +237,6 @@ fun GameScreen(mode: String, playerCount: Int, onBack: () -> Unit) {
                     ) {
                         Box(modifier = Modifier.fillMaxSize(0.9f).offset(y = 2.dp).background(Color.Black.copy(0.2f), CircleShape))
                         Box(modifier = Modifier.fillMaxSize().background(brush = Brush.radialGradient(colors = listOf(playerColors[index].copy(alpha = 0.8f), playerColors[index])), shape = CircleShape).border(1.5.dp, Color.White, CircleShape))
-                        Box(modifier = Modifier.fillMaxWidth(0.5f).fillMaxHeight(0.3f).offset(x = (-2).dp, y = (-4).dp).background(Color.White.copy(0.4f), CircleShape))
                     }
                 }
             }
@@ -225,13 +253,13 @@ fun GameScreen(mode: String, playerCount: Int, onBack: () -> Unit) {
             Box(modifier = Modifier.fillMaxSize().background(Color.Black.copy(0.7f)).zIndex(100f), contentAlignment = Alignment.Center) {
                 Card(modifier = Modifier.padding(15.dp).fillMaxWidth(0.94f),
                     shape = RoundedCornerShape(15.dp),
-                    colors = CardDefaults.cardColors(containerColor = playerColors[currentPlayerIndex].copy(alpha = 0.1f))) {
-                    Column(modifier = Modifier.padding(15.dp).background(Color.White, RoundedCornerShape(15.dp)).padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                    colors = CardDefaults.cardColors(containerColor = Color.White)) {
+                    Column(modifier = Modifier.padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                             Text("Time: ${timeLeft}s", color = Color.Red, fontWeight = FontWeight.Bold, fontSize = 18.sp)
                             IconButton(onClick = { isPaused = true }) { Icon(painter = painterResource(id = android.R.drawable.ic_media_pause), contentDescription = "Pause", tint = playerColors[currentPlayerIndex]) }
                         }
-                        Text("Solve: $currentQuestion", fontSize = 22.sp, fontWeight = FontWeight.ExtraBold, color = playerColors[currentPlayerIndex], textAlign = TextAlign.Center, maxLines = 1)
+                        Text("Solve: $currentQuestion", fontSize = 22.sp, fontWeight = FontWeight.ExtraBold, color = playerColors[currentPlayerIndex], textAlign = TextAlign.Center)
                         OutlinedTextField(value = userAnswer, onValueChange = { userAnswer = it }, modifier = Modifier.fillMaxWidth().padding(vertical = 10.dp), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), placeholder = { Text("Your Answer") })
                         Button(onClick = {
                             val userIn = userAnswer.toIntOrNull()
@@ -242,9 +270,9 @@ fun GameScreen(mode: String, playerCount: Int, onBack: () -> Unit) {
 
                             scope.launch {
                                 if (userIn == correctAnswer) {
-                                    feedbackMessage = if(correctAnswer == 0) "🌟 0 Bonus! +1 step" else if(correctAnswer > 20) "🔥 Super Bonus! +20 steps" else "🌟 Correct! Moving ${if(correctAnswer <= 0) 1 else if(correctAnswer > 20) 20 else correctAnswer} steps"
-                                    playSound(context, if (correctAnswer == 0 || correctAnswer > 20) R.raw.bonus else R.raw.correct)
-                                    val moveSteps = if (correctAnswer == 0) 1 else if (correctAnswer > 20) 20 else correctAnswer
+                                    feedbackMessage = "🌟 Correct! Moving $correctAnswer steps"
+                                    playSound(context, R.raw.correct)
+                                    val moveSteps = if (correctAnswer <= 0) 1 else if (correctAnswer > 20) 20 else correctAnswer
 
                                     for (i in 1..moveSteps) {
                                         animatedPositions[sIndex].animateTo((startPos + i).toFloat(), tween(180, easing = LinearEasing))
@@ -261,7 +289,7 @@ fun GameScreen(mode: String, playerCount: Int, onBack: () -> Unit) {
                                         delay(400)
                                         feedbackMessage = if(finalPos > midPos) "🪜 Up the Ladder!" else "🐍 Oh no, Snake!"
                                         if (finalPos > midPos) playSound(context, R.raw.ladder) else playSound(context, R.raw.snake)
-                                        animatedPositions[sIndex].animateTo(finalPos.toFloat(), tween(900, easing = LinearOutSlowInEasing))
+                                        animatedPositions[sIndex].animateTo(finalPos.toFloat(), tween(900))
                                         midPos = finalPos
                                     }
 
